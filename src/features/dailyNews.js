@@ -1,7 +1,6 @@
-import dotenv from 'dotenv';
 import axios from 'axios';
 import Anthropic from '@anthropic-ai/sdk';
-dotenv.config();
+import { EmbedBuilder } from 'discord.js';
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -109,4 +108,48 @@ export async function getDailyTechNews() {
   }
   
   return null;
+}
+
+export async function postDailyNews(client) {
+  console.log('📰 Running daily news task...');
+
+  const channel = client.channels.cache.get(process.env.NEWS_CHANNEL_ID);
+
+  if (!channel) {
+    console.error('❌ News channel not found!');
+    return;
+  }
+
+  try {
+    const articles = await getDailyTechNews();
+
+    if (articles && articles.length === 4) {
+      await channel.send('**Jóóóóóreggelt Srácok!** ☀️\n\nMai 4 TOP hír amit neked programozóként tudnod kell:');
+
+      const colors = ['#FF4500', '#0099FF', '#0099FF', '#0099FF'];
+      const icons  = ['🔥', '💡', '⚡', '🚀'];
+      const footer = ['Kiemelt hír', null, null, null];
+
+      for (let i = 0; i < 4; i++) {
+        const embed = new EmbedBuilder()
+          .setColor(colors[i])
+          .setTitle(`${icons[i]} ${articles[i].title}`)
+          .setURL(articles[i].url)
+          .setDescription(articles[i].content)
+          .setTimestamp();
+
+        if (footer[i]) embed.setFooter({ text: footer[i] });
+        if (articles[i].imageUrl) embed.setImage(articles[i].imageUrl);
+
+        await channel.send({ embeds: [embed] });
+      }
+
+      await channel.send('**Jó kódolást!** 💻');
+      console.log('✅ Daily news posted successfully!');
+    } else {
+      console.error('❌ Failed to generate news articles');
+    }
+  } catch (error) {
+    console.error('❌ Error posting daily news:', error);
+  }
 }
