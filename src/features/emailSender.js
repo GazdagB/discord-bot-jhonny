@@ -5,29 +5,26 @@ import { pool } from "../db.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-export async function notifySubscribers(params) {
-
+export async function notifySubscribers() {
     try {
-    const emails = await pool.query(
-        `SELECT email FROM subscribers`
-    )
+        const result = await pool.query(`SELECT email FROM subscribers`);
+        const emails = result.rows.map(row => row.email);
 
-    console.log(emails)
+        if (emails.length === 0) return;
 
-    const { data, error } = await resend.emails.send({
-    from: 'Johnny <gazdagbal@gmail.com>',
-    to: emails,
-    subject: 'Hello World',
-    html: '<strong>It works!</strong>',
-  });
+        const { data, error } = await resend.emails.send({
+            from: 'Johnny Bot <johnny@gazdag.studio>',
+            to: emails,
+            subject: 'Hello World',
+            html: '<strong>It works!</strong>',
+        });
+
+        if (error) {
+            return console.error({ error });
+        }
+
+        console.log({ data });
     } catch (error) {
-        
+        console.error('notifySubscribers error:', error);
     }
-    
-
-  if (error) {
-    return console.error({ error });
-  }
-
-  console.log({ data });
 }
