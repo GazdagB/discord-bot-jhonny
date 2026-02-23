@@ -1,6 +1,7 @@
 import { updateMemberCount } from "../features/statsChannels.js";
 import { postDailyNews } from "../features/dailyNews.js";
 import { saveSubscriber, unsubscribeEmail } from "../db.js";
+import {notifySubscribers} from "../features/emailSender.js"
 import dotenv from 'dotenv'
 dotenv.config();
 
@@ -62,6 +63,8 @@ export async function interactionCreate(interaction) {
       }]
     });
 
+    await notifySubscribers()
+
     await dmChannel.send('✅ A meeting sikeresen ki lett hirdetve!');
 
   }  catch (error) {
@@ -78,9 +81,9 @@ export async function interactionCreate(interaction) {
   if (interaction.commandName === 'unsubscribe') { 
     try {
        await unsubscribeEmail(interaction.user.id);
-      interaction.reply({content: "✅ Sikeresen törlésre került az email címed az adatbázisból...", ephemeral: true })
+      await interaction.reply({content: "✅ Sikeresen törlésre került az email címed az adatbázisból...", ephemeral: true })
     } catch (error) {
-        interaction.reply({content: "❌ Váratlan hiba történt, keresd fel a projektmenedzsert....", ephemeral: true})
+        await interaction.reply({content: "❌ Váratlan hiba történt, keresd fel a projektmenedzsert....", ephemeral: true})
     }
   }
 
