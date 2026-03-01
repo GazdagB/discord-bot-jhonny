@@ -13,8 +13,9 @@ export async function interactionCreate(interaction) {
   }
 
   if (interaction.commandName === 'meeting'){
-    console.log(interaction.user.id)
 
+    console.log(interaction.user);
+    
     const memberRoles = interaction.member.roles.cache;
     const hasRole = memberRoles.has(process.env.MANAGER_ROLE_ID)
 
@@ -43,9 +44,28 @@ export async function interactionCreate(interaction) {
 
   try {
     const title = await ask('📋 Add meg a meeting címét:');
+    const meetingNr = await ask('#️⃣ Add meg a meeting számát')
     const description = await ask('📝 Add meg a meeting leírását:');
-    const date = await ask('📅 Add meg a meeting időpontját:');
+    const date = await ask('📅 Add meg a meeting Dátumát:');
+    const time = await ask('📅 Add meg a meeting időpontját:');
+    const duration = await ask('⏰ Add meg a meeting hosszát...')
 
+    const notificationData = {
+      globalName: interaction.user.globalName,
+      avatarURL: interaction.user.avatarURL({size: 64, format: 'png'}),
+      meetingNr,
+      title,
+      description,
+      date,
+      time,
+      duration,
+      createdAt: new Date(Date.now())
+    }
+
+    console.log(notificationData);
+    
+    console.log(notificationData.createdAt);
+    
 
     // Announcement csatornába posztolás
     const channel = await interaction.client.channels.fetch(process.env.ANNOUNCEMENTS_CHANNEL_ID);
@@ -56,14 +76,17 @@ export async function interactionCreate(interaction) {
         title: `📅 ${title}`,
         description: description,
         fields: [
-          { name: '🕐 Időpont', value: date }
+          {name: '#️⃣ Meeting Number', value: notificationData.meetingNr},
+          { name: '🕐 Időpont', value: date },
+          {name: '⏰ Meeting Hossza', value: `~${notificationData.duration} perc`}
+          
         ],
-        footer: { text: `Meeting összehívta: ${interaction.user.username}` },
-        timestamp: new Date(),
+        footer: { text: `Meeting összehívta: ${notificationData.globalName}` },
+        timestamp: notificationData.createdAt,
       }]
     });
 
-    await notifySubscribers()
+    await notifySubscribers(notificationData)
 
     await dmChannel.send('✅ A meeting sikeresen ki lett hirdetve!');
 
