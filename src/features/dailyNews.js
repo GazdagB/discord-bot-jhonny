@@ -1,10 +1,8 @@
 import axios from 'axios';
-import Anthropic from '@anthropic-ai/sdk';
+import Groq from "groq-sdk";
 import { EmbedBuilder } from 'discord.js';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const fetchNews = async () => {
   try {
@@ -25,15 +23,16 @@ const fetchNews = async () => {
 
 const generateDailyNews = async (articles) => {
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
       messages: [
-        { 
-          role: 'user', 
-          content: `Te egy tech hír bot vagy egy magyar Discord közösség számára, ahol programozók vannak.
-
-Itt van ${articles.length} tech hír:
+        {
+          role: 'system',
+          content: 'Te egy tech hír bot vagy egy magyar Discord közösség számára, ahol programozók vannak. Mindig valid JSON-t adsz vissza, semmi mást.'
+        },
+        {
+          role: 'user',
+          content: `Itt van ${articles.length} tech hír:
 ${JSON.stringify(articles, null, 2)}
 
 FELADATOD:
@@ -45,7 +44,7 @@ FONTOS: Válaszolj CSAK valid JSON formátumban, így:
 [
   {
     "title": "Rövid, figyelemfelkeltő magyar cím (max 256 karakter)",
-    "content": "Részletes fordítás magyarul - 3-4 bekezdés, engaging stílusban. (max 4000 karakter)",
+    "content": "Részletes fordítás magyarul - 3-4 bekezdés a poszt szövegéből, engaging stílusban. (max 4000 karakter)",
     "url": "eredeti url",
     "imageUrl": "urlToImage mező értéke (ha van, ha nincs akkor null)"
   },
@@ -71,15 +70,14 @@ FONTOS: Válaszolj CSAK valid JSON formátumban, így:
 
 Az első elem a LEGÉRDEKESEBB programozóknak, ez kap részletes fordítást.
 A többi 3 rövid összefoglalót kap.
-Használj barátságos, casual magyar nyelvezetet!` 
+Használj barátságos, casual magyar nyelvezetet!`
         }
-      ],
+      ]
     });
 
-    // Parse JSON response
-    let jsonText = response.content[0].text.trim();
+    let jsonText = response.choices[0].message.content.trim();
     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    
+
     return JSON.parse(jsonText);
   } catch (error) {
     console.error('Error generating news:', error);
@@ -89,24 +87,24 @@ Használj barátságos, casual magyar nyelvezetet!`
 
 export async function getDailyTechNews() {
   console.log('📰 Fetching daily tech news...');
-  
+
   const articles = await fetchNews();
-  
+
   if (articles.length === 0) {
     console.log('❌ No articles found');
     return null;
   }
-  
+
   console.log(`✅ Found ${articles.length} articles`);
   console.log('🤖 Generating Hungarian digest...');
-  
+
   const newsArticles = await generateDailyNews(articles);
-  
+
   if (newsArticles && newsArticles.length === 4) {
     console.log('✅ Generated 4 articles successfully');
     return newsArticles;
   }
-  
+
   return null;
 }
 
